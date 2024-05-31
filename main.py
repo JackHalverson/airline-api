@@ -22,40 +22,41 @@ with open("airlines.json", "r") as f:
 
 app = FastAPI()
 
-@app.get("/airline")
+@app.get("/")
 def get_airline():
     return list(flights_list.keys())
 
-@app.get("/airline/{airline_name}")
+@app.get("/{airline_name}")
 def get_flights(airline_name: Airlines_list):
-    return flights_list[airline_name.value]
+    if airline_name.value in flights_list:
+        flights = flights_list[airline_name.value]
+        flight_numbers = [flight["flight_num"] for flight in flights]
+        return flight_numbers
 
-@app.get("/airline/{airline_name}/{flight_num}")
+@app.get("/{airline_name}/{flight_num}")
 def get_flight(airline_name: Airlines_list, flight_num: str):
     if airline_name.value in flights_list:
         airline_flights = flights_list[airline_name.value]
         for flight in airline_flights:
             if flight["flight_num"] == flight_num:
                 return flight
-
-@app.post("/airline")
-def create_flight(flight: Flight):
-    flights_list.append(flight)
-
-@app.put("/airline/{airline_name}/{flight_num}")
-def update_flight(airline_name: Airlines_list, flight: Flight, flight_num: str):
+            
+@app.post("/{airline_name}")
+def add_flight(airline_name: Airlines_list, flight: Flight):
     if airline_name.value in flights_list:
-        airline_flights = flights_list[airline_name.value]
-        for i, existing_flight in enumerate(airline_flights):
-            if existing_flight["flight_num"] == flight_num:
-                airline_flights[i] = flight.model_dump()
-                return {"message": "Flight updated successfully"}
+        flights_list[airline_name.value].append(flight.model_dump())
 
-@app.delete("/airline/{airline_name}/{flight_num}")
-def delete_flight(airline_name: Airlines_list, flight: Flight, flight_num: str):
+@app.put("/{airline_name}/{flight_num}")
+def update_flight(airline_name: Airlines_list, flight_num: str, updated_flight: Flight):
     if airline_name.value in flights_list:
-        airline_flights = flights_list[airline_name.value]
-        for i, existing_flight in enumerate(airline_flights):
-            if existing_flight["flight_num"] == flight_num:
-                del airline_flights[i]
-                return {"message": "Flight updated successfully"}
+        for index, flight in enumerate(flights_list[airline_name.value]):
+            if flight["flight_num"] == flight_num:
+                flights_list[airline_name.value][index] = updated_flight.model_dump()
+
+
+@app.delete("/{airline_name}/{flight_num}")
+def delete_flight(airline_name: Airlines_list, flight_num: str):
+    if airline_name.value in flights_list:
+        for flight in flights_list[airline_name.value]:
+            if flight["flight_num"] == flight_num:
+                flights_list[airline_name.value].remove(flight)
